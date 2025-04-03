@@ -1,9 +1,7 @@
 package brickset;
 
-import java.util.List;
-import java.util.LongSummaryStatistics;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class LegoSetImp implements LegoSetInterface{
 
@@ -13,7 +11,10 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public List<LegoSet> getLegoSets() {
-        return LegoSetInterface.super.getLegoSets();
+
+        return new LegoSetRepository().getAll()
+                .stream().limit(1000).
+                collect(Collectors.toList());
     }
 
     /**
@@ -21,7 +22,12 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public void printAllThemesByTag() {
-
+       getLegoSets().stream()
+               .filter(legoSet -> legoSet.tags() != null &&
+                       legoSet.tags().contains("Astronomy"))
+               .map(LegoSet::theme)
+               .distinct()
+               .sorted().forEach(System.out::println);
     }
 
     /**
@@ -32,7 +38,10 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public LongSummaryStatistics getSummaryStatisticsOfPiecesByTheme(String theme) {
-        return null;
+        return getLegoSets().stream()
+                .filter(legoSet -> theme.equals(legoSet.theme()))
+                .mapToLong(LegoSet::pieces)
+                .summaryStatistics();
     }
 
     /**
@@ -40,7 +49,10 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public Double getAvgPiecesOfIcons() {
-        return 0.0;
+        return getLegoSets().stream()
+                .filter(legoSet -> legoSet.theme().contains("Icons"))
+                .mapToLong(LegoSet::pieces)
+                .average().orElse(0.0);
     }
 
     /**
@@ -50,7 +62,10 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public Map<String, Integer> getSumOfPiecesByTheme() {
-        return Map.of();
+        return getLegoSets().stream()
+                .collect(Collectors.groupingBy(
+                        LegoSet::theme, Collectors.summingInt(LegoSet::pieces)
+                ));
     }
 
     /**
@@ -58,11 +73,23 @@ public class LegoSetImp implements LegoSetInterface{
      */
     @Override
     public Map<String, Map<String, Set<LegoSet>>> getLegoSetByThemeThenBySubtheme() {
-        return Map.of();
+        return getLegoSets().stream()
+                .filter(legoSet -> legoSet.subtheme() != null)
+                .filter(legoSet -> legoSet.theme() != null)
+                .collect(Collectors.groupingBy(LegoSet::theme,Collectors
+                        .groupingBy(LegoSet::subtheme,Collectors.toSet())
+                ));
     }
 
     public static void main(String[] args) {
-        var lego = new LegoSetRepository();
-        System.out.println(lego.getAll());
+        var lego = new LegoSetImp();
+        //System.out.println(lego.getAll());
+        //System.out.println(lego.getLegoSets());
+        lego.printAllThemesByTag();
+        System.out.println(lego.getSummaryStatisticsOfPiecesByTheme("Icons"));
+        System.out.println(lego.getAvgPiecesOfIcons());
+        System.out.println(lego.getSumOfPiecesByTheme());
+        System.out.println(lego.getLegoSetByThemeThenBySubtheme());
+
     }
 }
